@@ -1,13 +1,12 @@
 # pi-openrouter-scoped-models
 
 Keep Pi's OpenRouter model list in sync with your own account — automatically,
-in the background, with only your normal inference API key. No management key,
-no analytics, and no account administration.
+in the background, with only your normal inference API key.
 
 ## What you get
 
 - **Your account's real catalog.** Fetches the authenticated, user-scoped list
-  (`GET /api/v1/models/user`), not the public `/models` list and not an SDK.
+  from `GET /api/v1/models/user`.
 - **Fresh without the wait.** Registers the cached catalog instantly at startup,
   then refreshes in the background when the cache is older than 30 minutes.
 - **Offline-safe.** A failed refresh keeps the last good catalog; the cache is
@@ -34,8 +33,8 @@ pi install .
 
 Do not install the original `@robhowley/pi-openrouter` alongside this extension:
 both register the `openrouter` provider and their catalogs can overwrite each
-other. No management key is needed or read, and the same `OPENROUTER_API_KEY` is
-used by Pi for model calls; this extension never stores it.
+other. The same `OPENROUTER_API_KEY` is used by Pi for model calls; this
+extension never stores it.
 
 ## Use
 
@@ -59,9 +58,7 @@ ignored. Delete `~/.pi/openrouter-models/models-cache.json` to clear it.
 2. **Map.** Text-capable entries become Pi models with context/output limits,
    text/image input, a reasoning flag, and **per-million-token** prices. Entries
    without valid pricing or context limits are skipped. The `openrouter/free`
-   router is added because the user endpoint omits router aliases;
-   `openrouter/auto` is deliberately excluded because its variable price cannot
-   honestly be shown as zero-cost.
+   router is added because the user endpoint omits router aliases.
 3. **Register and cache.** `registerProvider('openrouter', { models })` replaces
    the provider's chat-model list. A successful refresh writes the raw list to
    `~/.pi/openrouter-models/models-cache.json`, keyed by a SHA-256 fingerprint of
@@ -75,8 +72,7 @@ ignored. Delete `~/.pi/openrouter-models/models-cache.json` to clear it.
 5. **Fail safe.** A failed refresh falls back to the last cached catalog. In
    free-only mode, both live results and fallback cache are filtered to explicit
    `:free` models with zero published input/output price plus `openrouter/free`;
-   with no usable fallback, only the free router is registered rather than
-   leaving paid models active.
+   with no usable fallback, only the free router is registered.
 
 ## Limits and safety
 
