@@ -1,4 +1,4 @@
-# pi-openrouter-models-local
+# pi-openrouter-scoped-models
 
 A small Pi extension for the **authenticated, user-scoped OpenRouter chat-model list**. It implements the model-catalog part of [Rob Howley's pi-openrouter](https://github.com/robhowley/pi-userland/tree/main/packages/pi-openrouter) without account analytics, API key creation/toggling, usage/session hooks, or any `OPENROUTER_MANAGEMENT_KEY` support.
 
