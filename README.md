@@ -84,6 +84,11 @@ ignored. Delete `~/.pi/openrouter-models/models-cache.json` to clear it.
 - Prices are catalog estimates, not a spending limit. **Free-only mode is not a
   financial guarantee — enforce real spending limits on the OpenRouter API key.**
 
+## Credits
+
+Model-catalog behavior derived from [Rob Howley's pi-openrouter](https://github.com/robhowley/pi-userland/tree/main/packages/pi-openrouter).
+The original is MIT licensed; its attribution is retained in [LICENSE](LICENSE).
+
 ## Development
 
 ```sh
@@ -94,5 +99,4 @@ npm run typecheck
 
 Tests use mocked HTTP and file-backed cache fixtures; they do not contact
 OpenRouter. `PI_OPENROUTER_MODELS_CACHE_DIR` redirects the cache for isolated
-testing. The original package is MIT licensed; its attribution is retained in
-[LICENSE](LICENSE).
+testing.
