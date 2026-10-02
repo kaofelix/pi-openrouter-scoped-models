@@ -22,10 +22,21 @@ suite uses Node 24). Set your normal inference key in the Pi process environment
 
 ```sh
 export OPENROUTER_API_KEY='sk-or-...'
-pi --extension ./extensions/index.ts
 ```
 
-Or install this local package into Pi's settings from this directory:
+Install the package from GitHub:
+
+```sh
+pi install git:github.com/kaofelix/pi-openrouter-scoped-models
+```
+
+To try it for a single invocation without installing:
+
+```sh
+pi -e git:github.com/kaofelix/pi-openrouter-scoped-models
+```
+
+For local development, install from this directory instead:
 
 ```sh
 pi install .
