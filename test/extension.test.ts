@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { mkdtemp } from 'node:fs/promises';
+import { mkdtemp, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import install from '../extensions/index.ts';
@@ -21,11 +21,16 @@ async function waitFor(predicate: () => boolean, timeout = 2000): Promise<void> 
   }
 }
 
-async function harness(directory: string, key = 'test-only-key') {
+async function harness(directory: string, key: string | undefined = 'test-only-key', stored?: object) {
   const previousKey = process.env.OPENROUTER_API_KEY;
   const previousCache = process.env.PI_OPENROUTER_MODELS_CACHE_DIR;
-  process.env.OPENROUTER_API_KEY = key;
+  const previousAuth = process.env.PI_OPENROUTER_MODELS_AUTH_PATH;
+  if (key === undefined) delete process.env.OPENROUTER_API_KEY;
+  else process.env.OPENROUTER_API_KEY = key;
   process.env.PI_OPENROUTER_MODELS_CACHE_DIR = directory;
+  // Keep the developer's real auth.json out of the tests.
+  process.env.PI_OPENROUTER_MODELS_AUTH_PATH = join(directory, 'auth.json');
+  if (stored) await writeFile(join(directory, 'auth.json'), JSON.stringify(stored));
   const commands = new Map<string, (args: string, ctx: any) => Promise<void>>();
   const registered: any[] = [];
   const notices: string[] = [];
@@ -54,6 +59,8 @@ async function harness(directory: string, key = 'test-only-key') {
     else process.env.OPENROUTER_API_KEY = previousKey;
     if (previousCache === undefined) delete process.env.PI_OPENROUTER_MODELS_CACHE_DIR;
     else process.env.PI_OPENROUTER_MODELS_CACHE_DIR = previousCache;
+    if (previousAuth === undefined) delete process.env.PI_OPENROUTER_MODELS_AUTH_PATH;
+    else process.env.PI_OPENROUTER_MODELS_AUTH_PATH = previousAuth;
   };
   return { commands, registered, notices, context, emit, restore };
 }
@@ -174,6 +181,64 @@ test('only the startup session event refreshes the catalog', async () => {
     h.emit('session_start', { type: 'session_start', reason: 'reload' });
     await new Promise((resolve) => setTimeout(resolve, 50));
     assert.equal(calls, 0);
+  } finally {
+    globalThis.fetch = previousFetch;
+    h.restore();
+  }
+});
+
+test('sync uses an api_key credential stored by /login when no env var is set', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'or-login-key-'));
+  const previousFetch = globalThis.fetch;
+  let authorization = '';
+  globalThis.fetch = async (_input, init) => {
+    authorization = new Headers(init?.headers).get('Authorization') ?? '';
+    return new Response(JSON.stringify({ data: [paid] }), { status: 200 });
+  };
+  const h = await harness(directory, undefined, { openrouter: { type: 'api_key', key: 'stored-key' } });
+  try {
+    await h.commands.get('openrouter-models')!('sync', h.context);
+    assert.equal(authorization, 'Bearer stored-key');
+    assert.deepEqual(h.registered.at(-1).models.map((model: any) => model.id),
+      ['vendor/paid', 'openrouter/free']);
+  } finally {
+    globalThis.fetch = previousFetch;
+    h.restore();
+  }
+});
+
+test('sync uses the permanent key from an OpenRouter OAuth credential stored by /login', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'or-login-oauth-'));
+  const previousFetch = globalThis.fetch;
+  let authorization = '';
+  globalThis.fetch = async (_input, init) => {
+    authorization = new Headers(init?.headers).get('Authorization') ?? '';
+    return new Response(JSON.stringify({ data: [paid] }), { status: 200 });
+  };
+  const h = await harness(directory, undefined, {
+    openrouter: { type: 'oauth', access: 'oauth-key', refresh: '', expires: Number.MAX_SAFE_INTEGER },
+  });
+  try {
+    await h.commands.get('openrouter-models')!('sync', h.context);
+    assert.equal(authorization, 'Bearer oauth-key');
+  } finally {
+    globalThis.fetch = previousFetch;
+    h.restore();
+  }
+});
+
+test('a stored /login credential owns the provider over the environment variable', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'or-login-precedence-'));
+  const previousFetch = globalThis.fetch;
+  let authorization = '';
+  globalThis.fetch = async (_input, init) => {
+    authorization = new Headers(init?.headers).get('Authorization') ?? '';
+    return new Response(JSON.stringify({ data: [paid] }), { status: 200 });
+  };
+  const h = await harness(directory, 'env-key', { openrouter: { type: 'api_key', key: 'stored-key' } });
+  try {
+    await h.commands.get('openrouter-models')!('sync', h.context);
+    assert.equal(authorization, 'Bearer stored-key');
   } finally {
     globalThis.fetch = previousFetch;
     h.restore();

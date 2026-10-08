@@ -4,6 +4,7 @@ import type { ExtensionAPI } from '@earendil-works/pi-coding-agent';
 import { fetchUserModels } from './api.ts';
 import { readCatalogCache, writeCatalogCache } from './cache.ts';
 import { mapCatalog, type CatalogMode, type ModelConfig } from './catalog.ts';
+import { resolveOpenRouterKey } from './credentials.ts';
 import { syncModels, type SyncResult } from './sync.ts';
 
 type ActiveCatalog = { source: 'api' | 'cache' | 'none'; mode: CatalogMode; count: number; timestamp?: number };
@@ -37,7 +38,7 @@ export default async function install(pi: ExtensionAPI): Promise<void> {
     register,
   });
 
-  const key = process.env.OPENROUTER_API_KEY?.trim();
+  const key = resolveOpenRouterKey();
 
   // Startup is offline and fast; never load another API key's cached catalog.
   if (key) {
@@ -55,7 +56,7 @@ export default async function install(pi: ExtensionAPI): Promise<void> {
   // active until the fresh one is ready, so startup never waits on the network.
   pi.on('session_start', (event) => {
     if (event.reason !== 'startup') return;
-    const currentKey = process.env.OPENROUTER_API_KEY?.trim();
+    const currentKey = resolveOpenRouterKey();
     if (!currentKey || inflight) return;
     if (active?.timestamp && Date.now() - active.timestamp < STALE_MS) return;
     const mode = active?.mode ?? 'full';
@@ -97,9 +98,9 @@ export default async function install(pi: ExtensionAPI): Promise<void> {
         ctx.ui.notify('Usage: /openrouter-models sync [--free] | status', 'error');
         return;
       }
-      const currentKey = process.env.OPENROUTER_API_KEY?.trim();
+      const currentKey = resolveOpenRouterKey();
       if (!currentKey) {
-        ctx.ui.notify('Set OPENROUTER_API_KEY to sync the user-scoped model catalog.', 'error');
+        ctx.ui.notify('Log in with /login openrouter or set OPENROUTER_API_KEY to sync the user-scoped model catalog.', 'error');
         return;
       }
       const mode: CatalogMode = parts[1] === '--free' ? 'free-only' : 'full';
