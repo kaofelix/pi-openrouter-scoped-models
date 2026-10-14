@@ -1,5 +1,8 @@
 # pi-openrouter-scoped-models
 
+> **Archived.** Pi now handles user-scoped OpenRouter model sync directly, so
+> this extension is no longer needed. The repository is kept for reference.
+
 Keep Pi's OpenRouter model list in sync with your own account — automatically,
 in the background, with only your normal inference credential.
 
